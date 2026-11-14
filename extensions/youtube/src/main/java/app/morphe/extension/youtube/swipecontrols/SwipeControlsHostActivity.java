@@ -36,6 +36,7 @@ import app.morphe.extension.youtube.swipecontrols.controller.VolumeKeysControlle
 import app.morphe.extension.youtube.swipecontrols.controller.gesture.ClassicSwipeController;
 import app.morphe.extension.youtube.swipecontrols.controller.gesture.PressToSwipeController;
 import app.morphe.extension.youtube.swipecontrols.controller.gesture.core.GestureController;
+import app.morphe.extension.youtube.swipecontrols.flingtopc.FlingToPcController;
 import app.morphe.extension.youtube.swipecontrols.misc.Rectangle;
 import app.morphe.extension.youtube.swipecontrols.views.SwipeControlsOverlayLayout;
 
@@ -102,6 +103,11 @@ public class SwipeControlsHostActivity extends Activity {
     private VolumeKeysController keys;
 
     /**
+     * Swipe up on the player to send the video to a computer.
+     */
+    private FlingToPcController flingToPc;
+
+    /**
      * Listener for changes in the player type.
      */
     private Consumer<PlayerType> playerTypeObserver;
@@ -135,6 +141,9 @@ public class SwipeControlsHostActivity extends Activity {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         ensureInitialized();
+        if (flingToPc.onTouchEvent(ev)) {
+            return true;
+        }
         if (gesture.submitTouchEvent(ev)) {
             // The consumed event does not reach Activity.dispatchTouchEvent, which reports the
             // user interaction. Without it YouTube thinks the user is idle and stops the autoplay
@@ -166,6 +175,17 @@ public class SwipeControlsHostActivity extends Activity {
      */
     public boolean dispatchDownstreamTouchEvent(MotionEvent event) {
         return super.dispatchTouchEvent(event);
+    }
+
+    /**
+     * Ends the gesture the swipe controls are tracking, when another controller takes it.
+     *
+     * @param cancelEvent An {@link MotionEvent#ACTION_CANCEL} event.
+     */
+    public void cancelSwipeGesture(MotionEvent cancelEvent) {
+        if (gesture != null) {
+            gesture.submitTouchEvent(cancelEvent);
+        }
     }
 
     @Nullable
@@ -245,6 +265,8 @@ public class SwipeControlsHostActivity extends Activity {
         gesture = config.shouldEnablePressToSwipe()
                 ? new PressToSwipeController(this)
                 : new ClassicSwipeController(this);
+
+        flingToPc = new FlingToPcController(this);
 
         // listen for changes in the player type
         playerTypeObserver = this::onPlayerTypeChanged;

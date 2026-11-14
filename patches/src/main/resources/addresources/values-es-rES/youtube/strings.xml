@@ -1856,4 +1856,21 @@ La grabación automática es opcional. Se detiene en modo incógnito o cuando ca
   <string name="morphe_live_chat_translate_max_length_title">Longitud máxima del mensaje</string>
   <string name="morphe_live_chat_translate_max_length_summary">Los mensajes más largos se muestran sin traducir</string>
   <string name="morphe_live_chat_translate_max_length_no_limit">Sin límite</string>
+
+  <!-- interaction.swipecontrols.swipeControlsPatch: fling to PC -->
+  <string name="morphe_fling_to_pc_title">Deslizar hacia arriba para enviar al PC</string>
+  <string name="morphe_fling_to_pc_summary">Desliza hacia arriba sobre el reproductor para ver el vídeo en el PC con FlingPC, desde el mismo segundo</string>
+  <string name="morphe_fling_to_pc_key_title">Clave del PC</string>
+  <string name="morphe_fling_to_pc_key_summary">La clave que muestra el icono de FlingPC en la bandeja del PC</string>
+  <string name="morphe_fling_to_pc_host_title">Dirección del PC</string>
+  <string name="morphe_fling_to_pc_host_summary">Déjalo vacío para buscar el PC en la red Wi-Fi automáticamente, o escribe su IP</string>
+  <string name="morphe_fling_to_pc_pause_title">Pausar en el móvil</string>
+  <string name="morphe_fling_to_pc_pause_summary">Pausa el vídeo en el móvil cuando el PC empieza a reproducirlo</string>
+  <string name="morphe_fling_to_pc_drag">↑ Enviar al PC</string>
+  <string name="morphe_fling_to_pc_release">Suelta para enviar</string>
+  <string name="morphe_fling_to_pc_sent">Reproduciendo en %s</string>
+  <string name="morphe_fling_to_pc_not_found">No se encuentra el PC. Comprueba que FlingPC está abierto y en la misma Wi-Fi</string>
+  <string name="morphe_fling_to_pc_bad_key">El PC ha rechazado la clave</string>
+  <string name="morphe_fling_to_pc_no_key">Pon la clave del PC en Ajustes de Morphe, Controles deslizantes</string>
+  <string name="morphe_fling_to_pc_no_video">No hay ningún vídeo para enviar</string>
 </resources>

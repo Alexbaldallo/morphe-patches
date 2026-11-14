@@ -811,6 +811,12 @@ public class Settings extends SharedYouTubeSettings {
     public static final BooleanSetting SWIPE_LOWEST_VALUE_ENABLE_AUTO_BRIGHTNESS = new BooleanSetting("morphe_swipe_lowest_value_enable_auto_brightness", FALSE, true, new SwipeActionAvailability(SwipeZoneAction.BRIGHTNESS));
     public static final IntegerSetting SWIPE_ZONE_WIDTH = new IntegerSetting("morphe_swipe_zone_width", 37, true, new SideSwipeZonesAvailability());
 
+    // Swipe up to send the video to a computer running FlingPC.
+    public static final BooleanSetting FLING_TO_PC = new BooleanSetting("morphe_fling_to_pc", TRUE);
+    public static final StringSetting FLING_TO_PC_KEY = new StringSetting("morphe_fling_to_pc_key", "", false, parent(FLING_TO_PC));
+    public static final StringSetting FLING_TO_PC_HOST = new StringSetting("morphe_fling_to_pc_host", "", false, parent(FLING_TO_PC));
+    public static final BooleanSetting FLING_TO_PC_PAUSE = new BooleanSetting("morphe_fling_to_pc_pause", TRUE, false, parent(FLING_TO_PC));
+
     // Niconico comments
     public static final BooleanSetting NICONICO_COMMENTS = new BooleanSetting("morphe_niconico_comments", FALSE, true);
     public static final BooleanSetting NICONICO_COMMENTS_SHOWN = new BooleanSetting("morphe_niconico_comments_shown", TRUE);

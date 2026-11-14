@@ -2028,4 +2028,21 @@ Automatic recording is optional. It stops in incognito or when the account chang
     <string name="morphe_live_chat_translate_max_length_title">Maximum message length</string>
     <string name="morphe_live_chat_translate_max_length_summary">Longer messages are shown untranslated</string>
     <string name="morphe_live_chat_translate_max_length_no_limit">No limit</string>
+
+    <!-- interaction.swipecontrols.swipeControlsPatch: fling to PC -->
+    <string name="morphe_fling_to_pc_title">Swipe up to send to PC</string>
+    <string name="morphe_fling_to_pc_summary">Swipe up on the player to play the video on a computer running FlingPC, from the same second</string>
+    <string name="morphe_fling_to_pc_key_title">PC pairing key</string>
+    <string name="morphe_fling_to_pc_key_summary">The key shown by the FlingPC tray icon on the computer</string>
+    <string name="morphe_fling_to_pc_host_title">PC address</string>
+    <string name="morphe_fling_to_pc_host_summary">Leave empty to find the PC on the Wi-Fi network automatically, or enter its IP</string>
+    <string name="morphe_fling_to_pc_pause_title">Pause on the phone</string>
+    <string name="morphe_fling_to_pc_pause_summary">Pause the video on the phone once the PC starts playing it</string>
+    <string name="morphe_fling_to_pc_drag">↑ Send to PC</string>
+    <string name="morphe_fling_to_pc_release">Release to send</string>
+    <string name="morphe_fling_to_pc_sent">Playing on %s</string>
+    <string name="morphe_fling_to_pc_not_found">PC not found. Check that FlingPC is running and on the same Wi-Fi</string>
+    <string name="morphe_fling_to_pc_bad_key">The PC rejected the pairing key</string>
+    <string name="morphe_fling_to_pc_no_key">Set the PC pairing key in Morphe settings, Swipe controls</string>
+    <string name="morphe_fling_to_pc_no_video">No video to send</string>
 </resources>

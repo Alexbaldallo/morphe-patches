@@ -157,6 +157,13 @@ private val swipeControlsResourcePatch = patch {
             TextPreference("morphe_swipe_threshold", inputType = InputType.NUMBER)
         )
 
+        PreferenceScreen.SWIPE_CONTROLS.addPreferences(
+            SwitchPreference("morphe_fling_to_pc", summary = true),
+            TextPreference("morphe_fling_to_pc_key", inputType = InputType.TEXT_CAP_CHARACTERS),
+            TextPreference("morphe_fling_to_pc_host"),
+            SwitchPreference("morphe_fling_to_pc_pause", summary = true)
+        )
+
         copyPlayerIcons(
             "swipecontrols",
             "morphe_ic_sc_brightness_auto",
