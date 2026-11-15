@@ -1859,7 +1859,7 @@ La grabación automática es opcional. Se detiene en modo incógnito o cuando ca
 
   <!-- interaction.swipecontrols.swipeControlsPatch: fling to PC -->
   <string name="morphe_fling_to_pc_title">Deslizar hacia arriba para enviar al PC</string>
-  <string name="morphe_fling_to_pc_summary">Desliza hacia arriba sobre el reproductor para ver el vídeo en el PC con FlingPC, desde el mismo segundo</string>
+  <string name="morphe_fling_to_pc_summary">Desliza hacia arriba sobre el reproductor para ver el vídeo en el PC con FlingPC, desde el mismo segundo. En el móvil se abre un panel para controlarlo</string>
   <string name="morphe_fling_to_pc_key_title">Clave del PC</string>
   <string name="morphe_fling_to_pc_key_summary">La clave que muestra el icono de FlingPC en la bandeja del PC</string>
   <string name="morphe_fling_to_pc_host_title">Dirección del PC</string>

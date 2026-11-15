@@ -2031,7 +2031,7 @@ Automatic recording is optional. It stops in incognito or when the account chang
 
     <!-- interaction.swipecontrols.swipeControlsPatch: fling to PC -->
     <string name="morphe_fling_to_pc_title">Swipe up to send to PC</string>
-    <string name="morphe_fling_to_pc_summary">Swipe up on the player to play the video on a computer running FlingPC, from the same second</string>
+    <string name="morphe_fling_to_pc_summary">Swipe up on the player to play the video on a computer running FlingPC, from the same second. A panel opens on the phone to control it</string>
     <string name="morphe_fling_to_pc_key_title">PC pairing key</string>
     <string name="morphe_fling_to_pc_key_summary">The key shown by the FlingPC tray icon on the computer</string>
     <string name="morphe_fling_to_pc_host_title">PC address</string>

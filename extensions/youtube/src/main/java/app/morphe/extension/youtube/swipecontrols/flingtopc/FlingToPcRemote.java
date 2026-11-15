@@ -4,7 +4,6 @@ import static app.morphe.extension.shared.StringRef.str;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -20,7 +19,6 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -38,9 +36,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
-import android.view.ViewTreeObserver;
-import android.view.Window;
-import android.view.WindowManager;
+import android.view.WindowInsets;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
@@ -48,6 +44,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import androidx.annotation.Nullable;
 
@@ -66,8 +64,9 @@ import app.morphe.extension.youtube.patches.VideoInformation;
 /**
  * Remote for the video playing on the computer, shown inside the app.
  * <p>
- * A panel rises from the bottom of the screen once the computer accepts the video: play and
- * pause, the seek bar, 10 seconds back and forward, the volume of the computer, continue on the
+ * A panel rises from the bottom of the screen once the computer accepts the video. It is a view
+ * on top of the activity, like the card of the swipe, not a window of its own. It has play and
+ * pause, a seek bar, 10 seconds back and forward, the volume of the computer, continue on the
  * phone and remove from the PC. While the panel is open the volume keys of the phone change the
  * volume of the computer. Dragging the panel down, the back button or a touch outside shrink it
  * to a small chip that floats over the app and opens the panel again. The state is read from the
@@ -129,9 +128,11 @@ public final class FlingToPcRemote {
     @Nullable
     private Bitmap artwork;
 
-    // Panel. All null while it is not showing.
+    /** Whether the panel is open. False as soon as it starts to leave. */
+    private boolean panelShowing;
+    /** Registered while the panel is open, Android 13 and newer. */
     @Nullable
-    private Dialog dialog;
+    private Object backCallback;
     private SheetLayout sheet;
     private View scrim;
     private LinearLayout panel;
@@ -143,7 +144,6 @@ public final class FlingToPcRemote {
     private SeekBar volumeBar;
     private TextView volumeText;
     private boolean seekBarTracking;
-    private boolean minimizing;
 
     @Nullable
     private View chip;
@@ -168,7 +168,9 @@ public final class FlingToPcRemote {
             current = new FlingToPcRemote(activity, reply, key, videoId, title, seconds, duration, live);
             current.begin();
         } catch (Exception ex) {
-            Logger.printException(() -> "Could not show the FlingPC remote", ex);
+            Logger.printInfo(() -> "Could not show the FlingPC remote", ex);
+            // Shown whatever the debug settings are, the video is already playing on the computer.
+            Utils.showToastLong("FlingPC: " + ex);
             if (current != null) current.release();
         }
     }
@@ -179,20 +181,43 @@ public final class FlingToPcRemote {
 
     /**
      * @param event Touch event in window coordinates, as received by the activity.
-     * @return Whether the event belongs to a gesture on the floating chip. Such a gesture
-     *         must not start a swipe on the player that is under the chip.
+     * @return Whether the event belongs to a gesture on the open panel or on the floating chip.
+     *         Such a gesture must not start a swipe on the player that is under them.
      */
     public static boolean ownsTouch(MotionEvent event) {
         final int action = event.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN) {
             FlingToPcRemote remote = current;
-            chipTouch = remote != null && remote.isOnChip(event);
+            chipTouch = remote != null && (remote.panelShowing || remote.isOnChip(event));
         }
         final boolean owns = chipTouch;
         if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
             chipTouch = false;
         }
         return owns;
+    }
+
+    /**
+     * @return Whether the open panel used the key: the volume keys change the volume of the
+     *         computer and the back key shrinks the panel.
+     */
+    public static boolean onKeyEvent(KeyEvent event) {
+        FlingToPcRemote remote = current;
+        if (remote == null || !remote.panelShowing) return false;
+
+        final int keyCode = event.getKeyCode();
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                remote.setVolume(remote.volume
+                        + (keyCode == KeyEvent.KEYCODE_VOLUME_UP ? VOLUME_KEY_STEP : -VOLUME_KEY_STEP), true);
+            }
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) remote.minimize();
+            return true;
+        }
+        return false;
     }
 
     private FlingToPcRemote(Activity activity, FlingToPcClient.Reply reply, String key, String videoId,
@@ -363,27 +388,7 @@ public final class FlingToPcRemote {
         handler.removeCallbacksAndMessages(null);
         if (current == this) current = null;
         removeChip();
-
-        final Dialog showing = dialog;
-        dialog = null;
-        if (showing == null) return;
-        if (panel != null && panel.isAttachedToWindow() && panel.getHeight() > 0) {
-            scrim.animate().alpha(0f).setDuration(180).start();
-            panel.animate().translationY(panel.getHeight()).setDuration(180)
-                    .setInterpolator(new AccelerateInterpolator())
-                    .withEndAction(() -> dismiss(showing)).start();
-        } else {
-            dismiss(showing);
-        }
-    }
-
-    private static void dismiss(Dialog dialog) {
-        try {
-            dialog.dismiss();
-        } catch (Exception ex) {
-            // The activity is gone.
-            Logger.printDebug(() -> "FlingPC panel was already gone: " + ex);
-        }
+        hidePanel(null);
     }
 
     // endregion
@@ -391,111 +396,111 @@ public final class FlingToPcRemote {
     // region Panel
 
     private void showPanel() {
-        if (released || dialog != null || isActivityGone()) return;
+        if (released || panelShowing || isActivityGone()) return;
         removeChip();
-        minimizing = false;
 
-        Dialog newDialog = new Dialog(activity, android.R.style.Theme_Translucent_NoTitleBar) {
-            @Override
-            public boolean onKeyDown(int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    setVolume(volume + (keyCode == KeyEvent.KEYCODE_VOLUME_UP ? VOLUME_KEY_STEP : -VOLUME_KEY_STEP), true);
-                    return true;
-                }
-                return super.onKeyDown(keyCode, event);
-            }
-
-            @Override
-            public boolean onKeyUp(int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    return true;
-                }
-                return super.onKeyUp(keyCode, event);
-            }
-
-            @Override
-            @SuppressWarnings("deprecation")
-            public void onBackPressed() {
-                minimize();
-            }
-        };
-
+        ViewGroup decor = (ViewGroup) activity.getWindow().getDecorView();
         sheet = new SheetLayout(themed);
         buildPanel();
-        newDialog.setContentView(sheet, new ViewGroup.LayoutParams(
+        WindowInsets insets = decor.getRootWindowInsets();
+        if (insets != null) applyBottomInset(bottomInset(insets));
+        // Last child of the window, so it is drawn over the whole app.
+        decor.addView(sheet, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-        Window window = newDialog.getWindow();
-        if (window != null) {
-            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            window.setWindowAnimations(0);
-            // The panel draws under the navigation bar and adds its height as padding.
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            setSystemBarsTransparent(window);
-        }
-
-        dialog = newDialog;
+        sheet.requestApplyInsets();
+        panelShowing = true;
+        registerBackCallback();
         updatePanel();
-        newDialog.show();
 
-        // Rise from the bottom once the height of the panel is known.
+        // Rise from the bottom. The start is below any panel height, which is not known yet.
         scrim.setAlpha(0f);
-        sheet.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                sheet.getViewTreeObserver().removeOnPreDrawListener(this);
-                panel.setTranslationY(panel.getHeight());
-                panel.animate().translationY(0f).setDuration(280)
-                        .setInterpolator(new DecelerateInterpolator(2f)).start();
-                scrim.animate().alpha(SCRIM_ALPHA).setDuration(280).start();
-                return true;
-            }
-        });
+        scrim.animate().alpha(SCRIM_ALPHA).setDuration(280).start();
+        panel.setTranslationY(dp(480));
+        panel.animate().translationY(0f).setDuration(280)
+                .setInterpolator(new DecelerateInterpolator(2f)).start();
 
         handler.removeCallbacks(tickRunnable);
         handler.postDelayed(tickRunnable, TICK_INTERVAL_MS);
-    }
-
-    @SuppressWarnings("deprecation")
-    private static void setSystemBarsTransparent(Window window) {
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false);
-        }
     }
 
     /**
      * Shrinks the panel to the floating chip. The video keeps playing on the computer.
      */
     private void minimize() {
-        final Dialog showing = dialog;
-        if (showing == null || minimizing || released) return;
-        minimizing = true;
+        if (!panelShowing || released) return;
+        hidePanel(this::showChip);
+    }
+
+    /**
+     * Slides the panel out of the screen and removes it.
+     *
+     * @param after Runs once it is gone, or null.
+     */
+    private void hidePanel(@Nullable Runnable after) {
+        if (!panelShowing) return;
+        panelShowing = false;
+        unregisterBackCallback();
         handler.removeCallbacks(tickRunnable);
 
+        final View leavingSheet = sheet;
+        final View leavingPanel = panel;
         scrim.animate().alpha(0f).setDuration(200).start();
-        panel.animate().translationY(panel.getHeight()).setDuration(200)
+        leavingPanel.animate().translationY(Math.max(leavingPanel.getHeight(), dp(240))).setDuration(200)
                 .setInterpolator(new AccelerateInterpolator())
                 .withEndAction(() -> {
-                    minimizing = false;
-                    if (dialog != showing) return; // Released meanwhile.
-                    dialog = null;
-                    dismiss(showing);
-                    showChip();
+                    if (leavingSheet.getParent() instanceof ViewGroup parent) {
+                        parent.removeView(leavingSheet);
+                    }
+                    if (after != null) after.run();
                 }).start();
     }
 
+    private void registerBackCallback() {
+        if (Build.VERSION.SDK_INT < 33 || backCallback != null) return;
+        try {
+            backCallback = BackCallback.register(activity, this::minimize);
+        } catch (Exception ex) {
+            // The back key still arrives as a key event.
+            Logger.printDebug(() -> "No back callback for the FlingPC panel: " + ex);
+        }
+    }
+
+    private void unregisterBackCallback() {
+        if (backCallback == null) return;
+        try {
+            BackCallback.unregister(activity, backCallback);
+        } catch (Exception ex) {
+            Logger.printDebug(() -> "Could not remove the back callback: " + ex);
+        }
+        backCallback = null;
+    }
+
+    /**
+     * The back gesture of Android 13 and newer, for apps that receive it as a callback instead of
+     * a key event. In its own class, so older versions never load the classes it uses.
+     */
+    private static final class BackCallback {
+        static Object register(Activity activity, Runnable onBack) {
+            OnBackInvokedCallback callback = onBack::run;
+            activity.getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_OVERLAY, callback);
+            return callback;
+        }
+
+        static void unregister(Activity activity, Object callback) {
+            activity.getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(
+                    (OnBackInvokedCallback) callback);
+        }
+    }
+
     private void tick() {
-        if (released || dialog == null) return;
+        if (released || !panelShowing) return;
         updateProgressViews();
         handler.postDelayed(tickRunnable, TICK_INTERVAL_MS);
     }
 
     private void updatePanel() {
-        if (dialog == null || released) return;
+        if (!panelShowing || released) return;
         playButton.setImageDrawable(new IconDrawable(
                 playing ? IconDrawable.PAUSE : IconDrawable.PLAY, COLOR_PANEL));
         if (artwork != null) thumbnailView.setImageBitmap(artwork);
@@ -504,7 +509,7 @@ public final class FlingToPcRemote {
     }
 
     private void updateProgressViews() {
-        if (dialog == null) return;
+        if (!panelShowing) return;
         final boolean seekable = !live && duration > 0;
         seekBar.setVisibility(seekable ? View.VISIBLE : View.GONE);
         durationText.setVisibility(seekable ? View.VISIBLE : View.INVISIBLE);
@@ -521,7 +526,7 @@ public final class FlingToPcRemote {
     }
 
     private void updateVolumeViews() {
-        if (dialog == null) return;
+        if (!panelShowing) return;
         if (volumeBar.getProgress() != volume) volumeBar.setProgress(volume);
         volumeText.setText(String.valueOf(volume));
     }
@@ -542,10 +547,9 @@ public final class FlingToPcRemote {
         panelBackground.setCornerRadii(new float[]{radius, radius, radius, radius, 0, 0, 0, 0});
         panel.setBackground(panelBackground);
         panel.setElevation(dp(16));
-        final int side = dp(20);
-        panel.setPadding(side, dp(8), side, dp(16));
+        applyBottomInset(0);
         sheet.setOnApplyWindowInsetsListener((v, insets) -> {
-            panel.setPadding(side, dp(8), side, dp(16) + bottomInset(insets));
+            applyBottomInset(bottomInset(insets));
             return insets;
         });
         sheet.addView(panel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -697,13 +701,18 @@ public final class FlingToPcRemote {
         sheet.applyConfiguration(activity.getResources().getConfiguration());
     }
 
+    /** The panel reaches the bottom of the screen, its content stays above the navigation bar. */
+    private void applyBottomInset(int inset) {
+        panel.setPadding(dp(20), dp(8), dp(20), dp(16) + inset);
+    }
+
     @SuppressWarnings("deprecation")
-    private static int bottomInset(android.view.WindowInsets insets) {
+    private static int bottomInset(WindowInsets insets) {
         return insets.getSystemWindowInsetBottom();
     }
 
     /**
-     * Root of the panel window. Dragging the panel down shrinks it to the chip.
+     * Root of the panel, as large as the window. Dragging the panel down shrinks it to the chip.
      */
     private final class SheetLayout extends FrameLayout {
         private final int touchSlop;
@@ -744,7 +753,7 @@ public final class FlingToPcRemote {
                 }
                 case MotionEvent.ACTION_MOVE -> {
                     // A bar being dragged asks its parents not to intercept, so this is never called for it.
-                    if (startedOnPanel && !minimizing && event.getRawY() - downY > touchSlop) {
+                    if (startedOnPanel && panelShowing && event.getRawY() - downY > touchSlop) {
                         dragging = true;
                         downY = event.getRawY();
                         panel.animate().cancel();

@@ -143,7 +143,7 @@ public class SwipeControlsHostActivity extends Activity {
     public boolean dispatchTouchEvent(MotionEvent ev) {
         ensureInitialized();
         if (FlingToPcRemote.ownsTouch(ev)) {
-            // A touch on the floating chip of the PC remote is not a swipe on the player under it.
+            // A touch on the panel or the chip of the PC remote is not a swipe on the player under it.
             return super.dispatchTouchEvent(ev);
         }
         if (flingToPc.onTouchEvent(ev)) {
@@ -164,6 +164,10 @@ public class SwipeControlsHostActivity extends Activity {
     @Override
     public boolean dispatchKeyEvent(KeyEvent ev) {
         ensureInitialized();
+        if (FlingToPcRemote.onKeyEvent(ev)) {
+            // The open panel of the PC remote uses the volume and back keys.
+            return true;
+        }
         if (keys.onKeyEvent(ev)) {
             // Activity.dispatchKeyEvent reports the user interaction for every key event.
             onUserInteraction();
