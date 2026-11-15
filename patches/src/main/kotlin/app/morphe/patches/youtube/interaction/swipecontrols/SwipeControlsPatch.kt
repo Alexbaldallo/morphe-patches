@@ -14,6 +14,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.patch
+import app.morphe.patcher.patch.resourceXml
 import app.morphe.patcher.util.getReference
 import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
@@ -57,6 +58,19 @@ private const val EXTENSION_SEEK_CLASS =
 
 private const val EXTENSION_SCRUBBER_INTERFACE =
     "Lapp/morphe/extension/youtube/swipecontrols/controller/SeekbarScrubber;"
+
+/**
+ * The remote of FlingPC keeps the app running with a foreground service while a video plays on
+ * the computer. YouTube already declares the permissions, each one is added only when missing.
+ */
+private val FLING_TO_PC_PERMISSIONS = listOf(
+    "android.permission.FOREGROUND_SERVICE",
+    "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+    "android.permission.POST_NOTIFICATIONS",
+)
+
+private const val FLING_TO_PC_SERVICE =
+    "app.morphe.extension.youtube.swipecontrols.flingtopc.FlingToPcService"
 
 private val swipeControlsResourcePatch = patch {
     dependsOn(
@@ -163,6 +177,27 @@ private val swipeControlsResourcePatch = patch {
             TextPreference("morphe_fling_to_pc_host"),
             SwitchPreference("morphe_fling_to_pc_pause", summary = true)
         )
+
+        resourceXml("AndroidManifest.xml").use { manifest ->
+            val declaredNames = manifest.elements().mapNotNullTo(HashSet()) { it.attribute("android:name") }
+            val application = manifest.elements("application").first()
+
+            for (permission in FLING_TO_PC_PERMISSIONS) {
+                if (permission !in declaredNames) {
+                    application.parent!!.insertChild(application.index, "uses-permission") {
+                        setAttribute("android:name", permission)
+                    }
+                }
+            }
+
+            if (FLING_TO_PC_SERVICE !in declaredNames) {
+                application.appendChild("service") {
+                    setAttribute("android:name", FLING_TO_PC_SERVICE)
+                    setAttribute("android:exported", "false")
+                    setAttribute("android:foregroundServiceType", "mediaPlayback")
+                }
+            }
+        }
 
         copyPlayerIcons(
             "swipecontrols",

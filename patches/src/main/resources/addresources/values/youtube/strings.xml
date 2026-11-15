@@ -2045,4 +2045,14 @@ Automatic recording is optional. It stops in incognito or when the account chang
     <string name="morphe_fling_to_pc_bad_key">The PC rejected the pairing key</string>
     <string name="morphe_fling_to_pc_no_key">Set the PC pairing key in Morphe settings, Swipe controls</string>
     <string name="morphe_fling_to_pc_no_video">No video to send</string>
+    <string name="morphe_fling_to_pc_network_error">Could not send to the PC: %s</string>
+    <string name="morphe_fling_to_pc_channel">Videos on the PC</string>
+    <string name="morphe_fling_to_pc_rewind">Back 10 s</string>
+    <string name="morphe_fling_to_pc_forward">Forward 10 s</string>
+    <string name="morphe_fling_to_pc_play_pause">Play or pause</string>
+    <string name="morphe_fling_to_pc_back">Continue on phone</string>
+    <string name="morphe_fling_to_pc_close">Remove from PC</string>
+    <string name="morphe_fling_to_pc_closed">Removed from the PC</string>
+    <string name="morphe_fling_to_pc_disconnected">Lost the connection with the PC</string>
+    <string name="morphe_fling_to_pc_back_other">The phone has another video open. The video was removed from the PC</string>
 </resources>

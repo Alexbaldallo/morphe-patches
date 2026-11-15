@@ -362,16 +362,25 @@ public final class FlingToPcController {
         final boolean live = VideoInformation.isLiveStream();
         final String title = VideoInformation.getVideoTitle();
 
-        FlingToPcClient.send(videoId, seconds, live, title, Settings.FLING_TO_PC_HOST.get(), key,
-                (receiverName, failure) -> {
-                    if (failure == null) {
-                        if (Settings.FLING_TO_PC_PAUSE.get()) {
+        final double videoLength = Math.max(0, VideoInformation.getVideoLength()) / 1000.0;
+
+        FlingToPcClient.play(videoId, seconds, live, title, Settings.FLING_TO_PC_HOST.get(), key,
+                (reply, failure, detail) -> {
+                    if (failure == null && reply != null) {
+                        final boolean pause = Settings.FLING_TO_PC_PAUSE.get();
+                        if (pause) {
                             FlingToPcClient.pauseLocalPlayback(host);
                         }
                         haptic(HapticFeedbackConstants.LONG_PRESS);
-                        Utils.showToastShort(str("morphe_fling_to_pc_sent", receiverName));
+                        Utils.showToastShort(str("morphe_fling_to_pc_sent", reply.name));
+                        // The remote is a media session too. It starts once YouTube got the pause key,
+                        // otherwise the key could reach the remote and pause the computer.
+                        Utils.runOnMainThreadDelayed(() -> FlingToPcRemote.start(host, reply, key,
+                                videoId, title, seconds, live ? 0 : videoLength), pause ? 400 : 0);
                     } else if (failure == FlingToPcClient.Failure.BAD_KEY) {
                         Utils.showToastLong(str("morphe_fling_to_pc_bad_key"));
+                    } else if (failure == FlingToPcClient.Failure.NETWORK) {
+                        Utils.showToastLong(str("morphe_fling_to_pc_network_error", detail));
                     } else {
                         Utils.showToastLong(str("morphe_fling_to_pc_not_found"));
                     }
