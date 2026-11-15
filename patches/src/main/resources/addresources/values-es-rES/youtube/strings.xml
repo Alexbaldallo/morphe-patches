@@ -1874,12 +1874,14 @@ La grabación automática es opcional. Se detiene en modo incógnito o cuando ca
   <string name="morphe_fling_to_pc_no_key">Pon la clave del PC en Ajustes de Morphe, Controles deslizantes</string>
   <string name="morphe_fling_to_pc_no_video">No hay ningún vídeo para enviar</string>
   <string name="morphe_fling_to_pc_network_error">No se ha podido enviar al PC: %s</string>
-  <string name="morphe_fling_to_pc_channel">Vídeos en el PC</string>
   <string name="morphe_fling_to_pc_rewind">Atrás 10 s</string>
   <string name="morphe_fling_to_pc_forward">Adelante 10 s</string>
   <string name="morphe_fling_to_pc_play_pause">Reproducir o pausar</string>
   <string name="morphe_fling_to_pc_back">Seguir en el móvil</string>
   <string name="morphe_fling_to_pc_close">Quitar del PC</string>
+  <string name="morphe_fling_to_pc_volume">Volumen del PC</string>
+  <string name="morphe_fling_to_pc_minimize">Minimizar</string>
+  <string name="morphe_fling_to_pc_live">En directo</string>
   <string name="morphe_fling_to_pc_closed">Quitado del PC</string>
   <string name="morphe_fling_to_pc_disconnected">Se ha perdido la conexión con el PC</string>
   <string name="morphe_fling_to_pc_back_other">En el móvil hay otro vídeo abierto. Se ha quitado del PC</string>

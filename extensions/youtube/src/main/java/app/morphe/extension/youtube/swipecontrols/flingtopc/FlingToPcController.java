@@ -367,16 +367,14 @@ public final class FlingToPcController {
         FlingToPcClient.play(videoId, seconds, live, title, Settings.FLING_TO_PC_HOST.get(), key,
                 (reply, failure, detail) -> {
                     if (failure == null && reply != null) {
-                        final boolean pause = Settings.FLING_TO_PC_PAUSE.get();
-                        if (pause) {
+                        if (Settings.FLING_TO_PC_PAUSE.get()) {
                             FlingToPcClient.pauseLocalPlayback(host);
                         }
                         haptic(HapticFeedbackConstants.LONG_PRESS);
                         Utils.showToastShort(str("morphe_fling_to_pc_sent", reply.name));
-                        // The remote is a media session too. It starts once YouTube got the pause key,
-                        // otherwise the key could reach the remote and pause the computer.
+                        // The panel rises once the card has left the screen.
                         Utils.runOnMainThreadDelayed(() -> FlingToPcRemote.start(host, reply, key,
-                                videoId, title, seconds, live ? 0 : videoLength), pause ? 400 : 0);
+                                videoId, title, seconds, videoLength, live), 250);
                     } else if (failure == FlingToPcClient.Failure.BAD_KEY) {
                         Utils.showToastLong(str("morphe_fling_to_pc_bad_key"));
                     } else if (failure == FlingToPcClient.Failure.NETWORK) {

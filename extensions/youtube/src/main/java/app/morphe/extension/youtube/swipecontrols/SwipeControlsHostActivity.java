@@ -37,6 +37,7 @@ import app.morphe.extension.youtube.swipecontrols.controller.gesture.ClassicSwip
 import app.morphe.extension.youtube.swipecontrols.controller.gesture.PressToSwipeController;
 import app.morphe.extension.youtube.swipecontrols.controller.gesture.core.GestureController;
 import app.morphe.extension.youtube.swipecontrols.flingtopc.FlingToPcController;
+import app.morphe.extension.youtube.swipecontrols.flingtopc.FlingToPcRemote;
 import app.morphe.extension.youtube.swipecontrols.misc.Rectangle;
 import app.morphe.extension.youtube.swipecontrols.views.SwipeControlsOverlayLayout;
 
@@ -141,6 +142,10 @@ public class SwipeControlsHostActivity extends Activity {
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         ensureInitialized();
+        if (FlingToPcRemote.ownsTouch(ev)) {
+            // A touch on the floating chip of the PC remote is not a swipe on the player under it.
+            return super.dispatchTouchEvent(ev);
+        }
         if (flingToPc.onTouchEvent(ev)) {
             return true;
         }
